@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Student - Smart Attendance</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Smart Attendance</h2>
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <a href="create_session.html"><i class="fas fa-play-circle"></i> Start Lecture</a>
+        <a href="scan.html"><i class="fas fa-qrcode"></i> Scan QR</a>
+        <a href="attendance.html"><i class="fas fa-clipboard-list"></i> View Attendance</a>
+        <a href="add_student.html" class="active"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="students_report.html"><i class="fas fa-chart-bar"></i> Students Report</a>
+        <a href="subject_details.html"><i class="fas fa-book"></i> Subject Details</a>
+        <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            Priyadarshini Bhagwati College of Engineering, Nagpur
+        </div>
+        
+        <h2 style="margin: 20px; color: #333;">Student Registry Management</h2>
+
+        <div class="session-container" style="max-width: 800px;">
+            <div id="auth-section" class="tab-content active" style="display: block;">
+                <h3><i class="fas fa-lock"></i> Teacher Access Required</h3>
+                <p>Only authorized faculty can add or modify student records.</p>
+                <form onsubmit="handleAuth(event)" style="max-width: 400px;">
+                    <div class="input-group">
+                        <label>Faculty ID</label>
+                        <input type="text" required placeholder="Enter ID">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" required placeholder="Enter Password">
+                    </div>
+                    <button type="submit" class="btn-primary">Authenticate</button>
+                </form>
+            </div>
+
+            <div id="management-section" style="display: none;">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchRegTab('single')">Add Individual</button>
+                    <button class="tab-btn" onclick="switchRegTab('batch')">Bulk Batch Upload</button>
+                </div>
+
+                <div id="single-reg" class="tab-content active" style="display: block;">
+                    <h3>Student Details</h3>
+                    <form onsubmit="addStudent(event)">
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label>Full Name</label>
+                                <input type="text" required>
+                            </div>
+                            <div class="input-group">
+                                <label>ERP ID / Roll No</label>
+                                <input type="text" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Branch</label>
+                                <select required>
+                                    <option value="">Select Branch</option>
+                                    <option value="CSE">Computer Science Engineering</option>
+                                    <option value="IT">Information Technology</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Batch Year</label>
+                                <select required>
+                                    <option value="">Select Batch</option>
+                                    <option value="2024">2024 - 2028</option>
+                                    <option value="2025">2025 - 2029</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Student Email</label>
+                                <input type="email" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Contact Number</label>
+                                <input type="tel" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" style="margin-top: 15px;"><i class="fas fa-save"></i> Register Student</button>
+                    </form>
+                </div>
+
+                <div id="batch-reg" class="tab-content" style="display: none;">
+                    <h3>Upload Batch (CSV/Excel)</h3>
+                    <p>Upload a .csv file containing the new batch list. Ensure columns match: <i>Name, ERP, Branch, Email, Phone</i>.</p>
+                    <div class="upload-box">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #1976d2; margin-bottom: 10px;"></i>
+                        <p>Drag & Drop file here or</p>
+                        <input type="file" accept=".csv, .xlsx" style="margin-top: 10px;">
+                    </div>
+                    <button class="btn-secondary" style="margin-top: 20px;">Upload & Parse</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <script>
+        // 1. Handle Teacher Login
+        async function handleAuth(event) {
+            event.preventDefault();
+            
+            const inputs = event.target.querySelectorAll('input');
+            const facultyId = inputs[0].value;
+            const password = inputs[1].value;
+
+            // Send to our backend
+            const response = await fetch('/api/teacher-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ facultyId, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('management-section').style.display = 'block';
+            } else {
+                alert(data.message); // Shows "Invalid ID or password"
+            }
+        }
+
+        // 2. Handle Adding a Student to MongoDB
+        async function addStudent(event) {
+            event.preventDefault();
+            
+            // Gather all data from the form
+            const inputs = event.target.querySelectorAll('input, select');
+            const studentData = {
+                fullName: inputs[0].value,
+                erpId: inputs[1].value,
+                branch: inputs[2].value,
+                batch: inputs[3].value,
+                email: inputs[4].value,
+                phone: inputs[5].value
+            };
+
+            // Send data to backend
+            const response = await fetch('/api/add-student', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                event.target.reset(); // Clear the form
+            } else {
+                alert("Error: " + data.message);
+            }
+        }
+
+        // Tab Switching logic (keep this the same as before)
+        function switchRegTab(tab) {
+            document.querySelectorAll('#management-section .tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('single-reg').style.display = 'none';
+            document.getElementById('batch-reg').style.display = 'none';
+
+            if(tab === 'single') {
+                document.querySelectorAll('#management-section .tab-btn')[0].classList.add('active');
+                document.getElementById('single-reg').style.display = 'block';
+            } else {
+                document.querySelectorAll('#management-section .tab-btn')[1].classList.add('active');
+                document.getElementById('batch-reg').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

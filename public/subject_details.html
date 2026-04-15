@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subject Details - Smart Attendance</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Smart Attendance</h2>
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <a href="create_session.html"><i class="fas fa-play-circle"></i> Start Lecture</a>
+        <a href="scan.html"><i class="fas fa-qrcode"></i> Scan QR</a>
+        <a href="attendance.html"><i class="fas fa-clipboard-list"></i> View Attendance</a>
+        <a href="add_student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="students_report.html"><i class="fas fa-chart-bar"></i> Students Report</a>
+        <a href="subject_details.html" class="active"><i class="fas fa-book"></i> Subject Details</a>
+        <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            Priyadarshini Bhagwati College of Engineering, Nagpur
+        </div>
+        
+        <h2 style="margin: 20px; color: #333;">Academic Materials</h2>
+
+        <div class="session-container" style="max-width: 900px;">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchMaterialTab('student-view')">View Materials</button>
+                <button class="tab-btn" onclick="switchMaterialTab('teacher-upload')">Teacher Upload</button>
+            </div>
+
+            <div id="student-view" class="tab-content active" style="display: block;">
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <select id="filter-branch" class="filter-select" style="flex: 1; padding: 10px; border-radius: 5px;" onchange="filterMaterials()">
+                        <option value="all">All Branches</option>
+                        <option value="cse">Computer Science (CSE)</option>
+                        <option value="it">Information Technology (IT)</option>
+                    </select>
+                    <select id="filter-subject" class="filter-select" style="flex: 1; padding: 10px; border-radius: 5px;" onchange="filterMaterials()">
+                        <option value="all">All Subjects</option>
+                        <option value="dbms">DBMS</option>
+                        <option value="cn">Computer Networks</option>
+                    </select>
+                    <select id="filter-type" class="filter-select" style="flex: 1; padding: 10px; border-radius: 5px;" onchange="filterMaterials()">
+                        <option value="all">All Types</option>
+                        <option value="notes">Notes</option>
+                        <option value="assignments">Assignments</option>
+                        <option value="practicals">Practicals</option>
+                    </select>
+                </div>
+
+                <div class="material-grid" id="materials-container">
+                    <div class="material-card" data-branch="cse" data-subject="dbms" data-type="notes">
+                        <div class="material-icon notes"><i class="fas fa-file-pdf"></i></div>
+                        <div class="material-info">
+                            <h4>Unit 1: ER Diagrams</h4>
+                            <p>CSE • DBMS • Uploaded: Oct 12</p>
+                        </div>
+                        <button class="btn-download"><i class="fas fa-download"></i></button>
+                    </div>
+
+                    <div class="material-card" data-branch="cse" data-subject="dbms" data-type="assignments">
+                        <div class="material-icon assignment"><i class="fas fa-tasks"></i></div>
+                        <div class="material-info">
+                            <h4>Assignment 2: SQL Queries</h4>
+                            <p>CSE • DBMS • Due: Oct 25</p>
+                        </div>
+                        <button class="btn-download"><i class="fas fa-download"></i></button>
+                    </div>
+
+                    <div class="material-card" data-branch="it" data-subject="cn" data-type="practicals">
+                        <div class="material-icon practical"><i class="fas fa-flask"></i></div>
+                        <div class="material-info">
+                            <h4>Exp 4: Subnetting</h4>
+                            <p>IT • Computer Networks • Uploaded: Oct 15</p>
+                        </div>
+                        <button class="btn-download"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="teacher-upload" class="tab-content" style="display: none;">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Academic Content</h3>
+                <form onsubmit="handleUpload(event)">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Target Course / Branch</label>
+                            <select required>
+                                <option value="cse">CSE - 3rd Year</option>
+                                <option value="it">IT - 3rd Year</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Subject</label>
+                            <select required>
+                                <option value="dbms">DBMS</option>
+                                <option value="cn">Computer Networks</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Material Type</label>
+                            <select required>
+                                <option value="notes">Lecture Notes</option>
+                                <option value="assignments">Assignment</option>
+                                <option value="practicals">Practical</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Document Title</label>
+                            <input type="text" placeholder="e.g. Unit 3 Notes" required>
+                        </div>
+                    </div>
+                    <div class="upload-box" style="margin-bottom: 20px; padding: 20px;">
+                        <input type="file" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Publish Material</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchMaterialTab(tabId) {
+            document.querySelectorAll('.tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('student-view').style.display = 'none';
+            document.getElementById('teacher-upload').style.display = 'none';
+
+            if(tabId === 'student-view') {
+                document.querySelectorAll('.tabs .tab-btn')[0].classList.add('active');
+                document.getElementById('student-view').style.display = 'block';
+            } else {
+                document.querySelectorAll('.tabs .tab-btn')[1].classList.add('active');
+                document.getElementById('teacher-upload').style.display = 'block';
+            }
+        }
+
+        function handleUpload(event) {
+            event.preventDefault();
+            alert("Document uploaded and pushed to students successfully!");
+            event.target.reset();
+        }
+
+        // --- NEW FILTER LOGIC ---
+        function filterMaterials() {
+            const branchFilter = document.getElementById('filter-branch').value;
+            const subjectFilter = document.getElementById('filter-subject').value;
+            const typeFilter = document.getElementById('filter-type').value;
+            
+            const cards = document.querySelectorAll('.material-card');
+
+            cards.forEach(card => {
+                const cardBranch = card.getAttribute('data-branch');
+                const cardSubject = card.getAttribute('data-subject');
+                const cardType = card.getAttribute('data-type');
+
+                // Check if the card matches the selected filters
+                const branchMatch = (branchFilter === 'all' || branchFilter === cardBranch);
+                const subjectMatch = (subjectFilter === 'all' || subjectFilter === cardSubject);
+                const typeMatch = (typeFilter === 'all' || typeFilter === cardType);
+
+                // If it matches all 3, show it. Otherwise, hide it.
+                if (branchMatch && subjectMatch && typeMatch) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR - Smart Attendance</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Smart Attendance</h2>
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <a href="create_session.html"><i class="fas fa-play-circle"></i> Start Lecture</a>
+        <a href="scan.html" class="active"><i class="fas fa-qrcode"></i> Scan QR</a>
+        <a href="attendance.html"><i class="fas fa-clipboard-list"></i> View Attendance</a>
+        <a href="add_student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="students_report.html"><i class="fas fa-chart-bar"></i> Students Report</a>
+        <a href="subject_details.html"><i class="fas fa-book"></i> Subject Details</a>
+        <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            Priyadarshini Bhagwati College of Engineering, Nagpur
+        </div>
+        
+        <h2 style="margin: 20px; color: #333;">Mark Attendance</h2>
+
+        <div class="dashboard-grid">
+            <div class="stat-card" style="flex-direction: column; align-items: stretch; grid-column: span 2;">
+                
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <label style="font-weight: bold; color: #1976d2;">Enter your ERP ID before scanning:</label><br>
+                    <input type="text" id="scannerErp" placeholder="e.g. ERP-2024-892" required style="padding: 10px; margin-top: 5px; width: 60%; text-align: center; border: 1px solid #ccc; border-radius: 5px;">
+                </div>
+
+                <div class="scanner-container" style="height: auto; padding: 20px; border: 2px dashed #1976d2;">
+                    <div id="camera-placeholder" class="camera-off">
+                        <i class="fas fa-camera" style="font-size: 40px; color: #999; margin-bottom: 10px;"></i>
+                        <p>Camera access is required to scan QR codes.</p>
+                        <button class="btn-primary" onclick="requestCamera()" style="width: auto; margin-top: 10px;">
+                            <i class="fas fa-video"></i> Start Scanner
+                        </button>
+                    </div>
+                    
+                    <div id="reader" style="width: 100%; display: none;"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="stat-card" style="flex-direction: column; align-items: flex-start;">
+                    <h3 style="margin-top: 0;"><i class="fas fa-keyboard"></i> Manual Entry</h3>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Camera broken? Enter your details manually.</p>
+                    <form onsubmit="submitManualAttendance(event)" style="width: 100%;">
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <input type="text" id="studentErp" placeholder="Your ERP ID" required style="text-align: center; width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <input type="text" id="manualPin" placeholder="6-Digit Pin" maxlength="6" required style="letter-spacing: 2px; font-weight: bold; text-align: center; width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                        </div>
+                        <button type="submit" class="btn-primary">Submit Attendance</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. QR Scanner Logic ---
+        function requestCamera() {
+            const erpId = document.getElementById('scannerErp').value;
+            
+            if (!erpId) {
+                alert("Please enter your ERP ID at the top before starting the camera!");
+                return;
+            }
+
+            // Hide placeholder, show the reader div
+            document.getElementById('camera-placeholder').style.display = 'none';
+            document.getElementById('reader').style.display = 'block';
+
+            // Initialize the scanner
+            const html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false
+            );
+
+            // Start scanning
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+            async function onScanSuccess(decodedText) {
+                // Stop the camera once we get a successful read
+                html5QrcodeScanner.clear();
+                document.getElementById('reader').innerHTML = `<h3 style="color: green; text-align: center;">QR Scanned! Processing...</h3>`;
+
+                // Send the decoded text (the Session ID) to our backend
+                try {
+                    const response = await fetch('/api/mark-attendance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ erpId: erpId, sessionIdentifier: decodedText })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert("✅ " + data.message);
+                        window.location.href = "attendance.html"; // Redirect to dashboard on success
+                    } else {
+                        alert("❌ " + data.message);
+                        location.reload(); // Reload to try again
+                    }
+                } catch (error) {
+                    alert("System error. Please try manual entry.");
+                }
+            }
+
+            function onScanFailure(error) {
+                // This fires constantly while it's looking for a code. We just ignore it until it finds one.
+            }
+        }
+
+        // --- 2. Manual Entry Logic (From earlier) ---
+        async function submitManualAttendance(event) {
+            event.preventDefault();
+            const erpId = document.getElementById('studentErp').value;
+            const sessionIdentifier = document.getElementById('manualPin').value;
+
+            const response = await fetch('/api/mark-attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ erpId, sessionIdentifier })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert("✅ " + data.message);
+                event.target.reset(); 
+            } else {
+                alert("❌ " + data.message);
+            }
+        }
+    </script>
+</body>
+</html>

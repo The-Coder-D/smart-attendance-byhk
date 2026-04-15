@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Attendance - Smart Attendance</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Smart Attendance</h2>
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <a href="create_session.html"><i class="fas fa-play-circle"></i> Start Lecture</a>
+        <a href="scan.html"><i class="fas fa-qrcode"></i> Scan QR</a>
+        <a href="attendance.html" class="active"><i class="fas fa-clipboard-list"></i> View Attendance</a>
+        <a href="add_student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="students_report.html"><i class="fas fa-chart-bar"></i> Students Report</a>
+        <a href="subject_details.html"><i class="fas fa-book"></i> Subject Details</a>
+        <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            Priyadarshini Bhagwati College of Engineering, Nagpur
+        </div>
+        
+        <h2 style="margin: 20px; color: #333;">My Attendance Dashboard</h2>
+
+        <div id="auth-section" class="session-container" style="max-width: 500px;">
+            <div style="padding: 30px;">
+                <h3><i class="fas fa-id-card"></i> Student Access</h3>
+                <p>Enter your ERP ID to load your live attendance data.</p>
+                <form onsubmit="loadDashboard(event)">
+                    <div class="input-group">
+                        <input type="text" id="dashboardErp" required placeholder="e.g. ERP-2024-892" style="text-align: center;">
+                    </div>
+                    <button type="submit" class="btn-primary">Load Dashboard</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="dashboard-section" style="display: none;">
+            
+            <h3 style="margin: 0 20px 20px 20px; color: #1976d2;">Welcome, <span id="studentNameDisplay">Student</span>!</h3>
+
+            <div class="dashboard-grid">
+                <div class="stat-card" style="background: linear-gradient(135deg, #1976d2, #1565c0); color: white;">
+                    <div class="stat-info" style="width: 100%;">
+                        <h3 style="color: #e3f2fd;">Overall Attendance</h3>
+                        <h1 id="overallPercentage" style="margin: 10px 0; font-size: 36px; color: white;">--%</h1>
+                        <p style="font-size: 14px; font-weight: normal; color: #bbdefb;">Real-time database calculation.</p>
+                    </div>
+                </div>
+
+                <div class="stat-card" style="flex-direction: column; align-items: flex-start; grid-column: span 2;">
+                    <h3 style="margin-top: 0;">This Week's Record</h3>
+                    <div class="weekly-tracker">
+                        <div class="day present"><span>Mon</span><i class="fas fa-check"></i></div>
+                        <div class="day present"><span>Tue</span><i class="fas fa-check"></i></div>
+                        <div class="day pending"><span>Wed</span><i class="fas fa-minus"></i></div>
+                        <div class="day pending"><span>Thu</span><i class="fas fa-minus"></i></div>
+                        <div class="day pending"><span>Fri</span><i class="fas fa-minus"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="margin-top: 20px;">
+                
+                <div class="stat-card" style="flex-direction: column; align-items: flex-start; grid-column: span 2;">
+                    <h3 style="margin-top: 0; color: #333;"><i class="fas fa-list-ul"></i> Recent Classes Attended</h3>
+                    <table class="exam-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentClassesTable">
+                            </tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card" style="flex-direction: column; align-items: flex-start;">
+                    <h3 style="margin-top: 0;"><i class="fas fa-envelope-open-text"></i> File Request</h3>
+                    <form style="width: 100%;" onsubmit="submitRequest(event)">
+                        <div class="input-group"><input type="date" required></div>
+                        <div class="input-group">
+                            <textarea placeholder="Reasoning..." rows="2" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit;" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">Submit</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard(event) {
+            event.preventDefault();
+            const erpId = document.getElementById('dashboardErp').value;
+
+            // Fetch live data from MongoDB!
+            const response = await fetch(`/api/get-attendance/${erpId}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // 1. Hide Login, Show Dashboard
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+
+                // 2. Populate Basic Info
+                document.getElementById('studentNameDisplay').innerText = data.studentName;
+                document.getElementById('overallPercentage').innerText = data.percentage + "%";
+
+                // 3. Populate Recent Classes Table
+                const tbody = document.getElementById('recentClassesTable');
+                tbody.innerHTML = ""; // Clear out old data
+
+                if (data.recentRecords.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #666;">No attendance records found yet.</td></tr>`;
+                } else {
+                    data.recentRecords.forEach(record => {
+                        // Format the date nicely
+                        const dateObj = new Date(record.createdAt);
+                        const timeString = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const dateString = dateObj.toLocaleDateString();
+
+                        // Create the row
+                        const row = `
+                            <tr>
+                                <td><strong>${record.subject}</strong></td>
+                                <td>${dateString} at ${timeString}</td>
+                                <td><span class="badge checked"><i class="fas fa-check"></i> Present</span></td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            } else {
+                alert("❌ " + data.message);
+            }
+        }
+
+        function submitRequest(event) {
+            event.preventDefault();
+            alert("Your request has been submitted to the HOD for review.");
+            event.target.reset();
+        }
+    </script>
+</body>
+</html>

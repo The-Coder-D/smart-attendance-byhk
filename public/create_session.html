@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Lecture - Smart Attendance</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Smart Attendance</h2>
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <a href="create_session.html" class="active"><i class="fas fa-play-circle"></i> Start Lecture</a>
+        <a href="scan.html"><i class="fas fa-qrcode"></i> Scan QR</a>
+        <a href="attendance.html"><i class="fas fa-clipboard-list"></i> View Attendance</a>
+        <a href="add_student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="students_report.html"><i class="fas fa-chart-bar"></i> Students Report</a>
+        <a href="subject_details.html"><i class="fas fa-book"></i> Subject Details</a>
+        <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            Priyadarshini Bhagwati College of Engineering, Nagpur
+        </div>
+        
+        <h2 style="margin: 20px; color: #333;">Session Management</h2>
+
+        <div class="session-container">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('teacher')">Teacher Portal</button>
+                <button class="tab-btn" onclick="switchTab('student')">Student Portal</button>
+            </div>
+
+            <div id="teacher-section" class="tab-content active">
+                
+                <div id="teacher-login">
+                    <h3>Teacher Authentication</h3>
+                    <p>Please log in to start a new lecture session.</p>
+                    <form onsubmit="handleTeacherLogin(event)">
+                        <div class="input-group">
+                            <label for="teacherId">Teacher ID</label>
+                            <input type="text" id="teacherId" placeholder="Enter your ID" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="Enter password" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Login</button>
+                    </form>
+                </div>
+
+                <div id="session-setup" style="display: none;">
+                    <h3><i class="fas fa-check-circle" style="color: green;"></i> Authenticated</h3>
+                    <p>Select details to generate attendance QR code.</p>
+                    <form onsubmit="handleSessionStart(event)">
+                        <div class="input-group">
+                            <label for="course">Select Course / Branch</label>
+                            <select id="course" required>
+                                <option value="">-- Choose Course --</option>
+                                <option value="cse">Computer Science Engineering</option>
+                                <option value="it">Information Technology</option>
+                                <option value="mech">Mechanical Engineering</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="subject">Select Subject</label>
+                            <select id="subject" required>
+                                <option value="">-- Choose Subject --</option>
+                                <option value="dbms">Database Management Systems</option>
+                                <option value="cn">Computer Networks</option>
+                                <option value="os">Operating Systems</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary"><i class="fas fa-qrcode"></i> Generate Lecture QR</button>
+                    </form>
+                </div>
+
+            </div>
+
+            <div id="student-section" class="tab-content">
+                <h3>Student Access</h3>
+                <p>Join an active session manually if you cannot scan the QR code.</p>
+                <form>
+                    <div class="input-group">
+                        <label for="sessionCode">Session Code</label>
+                        <input type="text" id="sessionCode" placeholder="Enter 6-digit code provided by teacher" required>
+                    </div>
+                    <button type="button" class="btn-secondary">Join Session</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Function to switch between Teacher and Student tabs
+        function switchTab(tabName) {
+            // Remove active class from all buttons and content
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to clicked tab and its content
+            if(tabName === 'teacher') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('teacher-section').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('student-section').classList.add('active');
+            }
+        }
+
+        // Function to mock the Teacher Login process
+        function handleTeacherLogin(event) {
+            event.preventDefault(); // Prevents the page from refreshing
+            
+            // In the future, this is where we will use fetch() to send the ID/Password to your Node.js backend.
+            // For now, we will just hide the login form and show the session setup form to test the UI.
+            
+            document.getElementById('teacher-login').style.display = 'none';
+            document.getElementById('session-setup').style.display = 'block';
+        }
+
+        // Handle Session Creation & Show QR
+        async function handleSessionStart(event) {
+            event.preventDefault();
+            
+            const course = document.getElementById('course').value;
+            const subject = document.getElementById('subject').value;
+            
+            // Call our new backend API
+            const response = await fetch('/api/create-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ teacherId: 'FAC-001', course, subject })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Hide the form and show the generated QR Code and Pin!
+                const setupDiv = document.getElementById('session-setup');
+                setupDiv.innerHTML = `
+                    <div style="text-align: center;">
+                        <h3 style="color: green;"><i class="fas fa-broadcast-tower"></i> Session is Live!</h3>
+                        <p>Ask students to scan this QR or enter the pin.</p>
+                        <img src="${data.qrImage}" alt="QR Code" style="width: 250px; border: 2px solid #ccc; border-radius: 10px; margin: 15px 0;">
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; display: inline-block;">
+                            <span style="font-size: 14px; color: #1976d2;">Manual Entry Pin:</span><br>
+                            <span style="font-size: 30px; font-weight: bold; letter-spacing: 5px;">${data.sessionCode}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                alert("Error: " + data.message);
+            }
+        }
+    </script>
+</body>
+</html>
