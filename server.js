@@ -20,9 +20,9 @@ mongoose.connect(process.env.MONGODB_URI)
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Import Models
-const Student = require('./models/Student');
-const Teacher = require('./models/Teacher');
-const Session = require('./models/Session');
+const Student = require('./models/student');
+const Teacher = require('./models/teacher');
+const Session = require('./models/session');
 
 // --- API ROUTES ---
 
