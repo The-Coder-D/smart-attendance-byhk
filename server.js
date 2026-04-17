@@ -28,13 +28,24 @@ const Session = require('./models/session');
 
 // 1. Teacher Login Route
 app.post('/api/teacher-login', async (req, res) => {
-    const { facultyId, password } = req.body;
-    const teacher = await Teacher.findOne({ facultyId, password });
-    
-    if (teacher) {
-        res.json({ success: true, message: "Login successful!" });
-    } else {
-        res.status(401).json({ success: false, message: "Invalid ID or Password" });
+    try {
+        const { teacherId, password } = req.body;
+        
+        // MASTER KEY FOR TESTING
+        if (teacherId === "test" && password === "1234") {
+            return res.json({ success: true, teacherName: "Teacher" });
+        }
+
+        // Normal database check
+        const teacher = await Teacher.findOne({ teacherId, password });
+        
+        if (teacher) {
+            res.json({ success: true, teacherName: teacher.fullName });
+        } else {
+            res.status(401).json({ success: false, message: "Invalid ID or Password" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error during login." });
     }
 });
 
@@ -70,10 +81,21 @@ app.post('/api/create-session', async (req, res) => {
         res.json({ 
             success: true, 
             qrImage: qrDataUrl, 
-            sessionCode: sessionCode 
+            sessionCode: sessionCode,
+            sessionId: newSession._id 
         });
     } catch (error) {
         res.status(500).json({ success: false, message: "Failed to generate session." });
+    }
+});
+
+// Fetch live attendance for a specific session ID
+app.get('/api/live-session-attendance/:sessionId', async (req, res) => {
+    try {
+        const attendances = await Attendance.find({ sessionId: req.params.sessionId }).sort({ createdAt: -1 });
+        res.json({ success: true, attendances });
+    } catch (error) {
+        res.status(500).json({ success: false });
     }
 });
 

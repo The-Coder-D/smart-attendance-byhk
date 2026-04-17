@@ -27,7 +27,210 @@
             Priyadarshini Bhagwati College of Engineering, Nagpur
         </div>
         
-        <h2 style="margin: 20px; color: #333;">Session Management</h2>
+        <h2 style="margin: 20px; color: #333;">Start a New Lecture</h2>
+
+        <div class="session-container" style="max-width: 600px; margin: 0 20px;">
+            
+            <div id="teacher-login" style="padding: 20px;">
+                <h3 style="color: #1976d2;"><i class="fas fa-chalkboard-teacher"></i> Teacher Authentication</h3>
+                <p>Please log in to initiate a secure attendance session.</p>
+                <form onsubmit="handleTeacherLogin(event)">
+                    <div class="input-group">
+                        <label for="teacherId">Teacher ID</label>
+                        <input type="text" id="teacherId" placeholder="e.g. FAC-001" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Secure Login</button>
+                </form>
+            </div>
+
+            <div id="session-setup" style="display: none; padding: 20px;">
+                <h3><i class="fas fa-check-circle" style="color: green;"></i> Authenticated as <span id="teacherNameDisplay"></span></h3>
+                <p>Select details to generate the live attendance QR code.</p>
+                <form onsubmit="handleSessionStart(event)">
+                    <div class="input-group">
+                        <label for="course">Select Course / Branch</label>
+                        <select id="course" required onchange="updateSubjects()">
+                            <option value="">-- Choose Course --</option>
+                            <option value="cse">Computer Science Engineering (CSE)</option>
+                            <option value="it">Information Technology (IT)</option>
+                            <option value="mech">Mechanical Engineering (MECH)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="subject">Select Subject</label>
+                        <select id="subject" required>
+                            <option value="">-- Choose Subject --</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary"><i class="fas fa-qrcode"></i> Generate Lecture QR</button>
+                </form>
+            </div>
+
+            <div id="live-session-dashboard" style="display: none; padding: 20px; text-align: center;">
+                <h3 style="color: green;"><i class="fas fa-broadcast-tower"></i> Session is Live!</h3>
+                
+                <div style="background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; font-weight: bold; margin: 10px 0;">
+                    <i class="fas fa-stopwatch"></i> Expires in: <span id="timeDisplay" style="font-size: 20px;">10:00</span>
+                </div>
+                
+                <img id="qrImage" src="" alt="QR Code" style="width: 250px; border: 2px solid #ccc; border-radius: 10px; margin: 15px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; display: inline-block; margin-bottom: 20px;">
+                    <span style="font-size: 14px; color: #1976d2;">Manual Entry Pin:</span><br>
+                    <span id="pinDisplay" style="font-size: 30px; font-weight: bold; letter-spacing: 5px;"></span>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <h4 style="color: #333; text-align: left;"><i class="fas fa-users"></i> Live Attendance (<span id="studentCount">0</span> joined)</h4>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; text-align: left; padding: 10px;">
+                    <ul id="liveStudentList" style="list-style: none; padding: 0; margin: 0;">
+                        <li style="color: #888; font-size: 14px; text-align: center;">Waiting for students to scan...</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentTeacherId = "";
+        let activeSessionId = "";
+        let livePollingInterval;
+
+        // --- 1. Dynamic Subject Logic ---
+        const subjectDatabase = {
+            cse: ["Database Management Systems", "Computer Networks", "Operating Systems", "Artificial Intelligence"],
+            it: ["Web Technologies", "Software Engineering", "Cloud Computing", "Cyber Security"],
+            mech: ["Thermodynamics", "Fluid Mechanics", "Machine Design", "Heat Transfer"]
+        };
+
+        function updateSubjects() {
+            const courseSelect = document.getElementById('course').value;
+            const subjectSelect = document.getElementById('subject');
+            
+            // Clear current options
+            subjectSelect.innerHTML = '<option value="">-- Choose Subject --</option>';
+            
+            // Add new options based on branch
+            if (subjectDatabase[courseSelect]) {
+                subjectDatabase[courseSelect].forEach(subject => {
+                    subjectSelect.innerHTML += `<option value="${subject}">${subject}</option>`;
+                });
+            }
+        }
+
+        // --- 2. Real Teacher Login ---
+        async function handleTeacherLogin(event) {
+            event.preventDefault();
+            const id = document.getElementById('teacherId').value;
+            const pass = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/teacher-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ teacherId: id, password: pass })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentTeacherId = id;
+                    document.getElementById('teacherNameDisplay').innerText = data.teacherName;
+                    document.getElementById('teacher-login').style.display = 'none';
+                    document.getElementById('session-setup').style.display = 'block';
+                } else {
+                    alert("❌ " + data.message);
+                }
+            } catch (error) {
+                alert("Database connection error. Try again.");
+            }
+        }
+
+        // --- 3. Start Session & Timer ---
+        async function handleSessionStart(event) {
+            event.preventDefault();
+            
+            const course = document.getElementById('course').options[document.getElementById('course').selectedIndex].text;
+            const subject = document.getElementById('subject').value;
+            
+            const response = await fetch('/api/create-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ teacherId: currentTeacherId, course, subject })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Hide Setup, Show Live Dashboard
+                document.getElementById('session-setup').style.display = 'none';
+                document.getElementById('live-session-dashboard').style.display = 'block';
+                
+                // Populate QR and Pin
+                document.getElementById('qrImage').src = data.qrImage;
+                document.getElementById('pinDisplay').innerText = data.sessionCode;
+                activeSessionId = data.sessionId;
+
+                // Start 10 Minute Timer
+                let timeLeft = 600; 
+                const timerInterval = setInterval(() => {
+                    timeLeft--;
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    document.getElementById('timeDisplay').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        clearInterval(livePollingInterval); // Stop polling
+                        document.getElementById('timeDisplay').innerText = "EXPIRED";
+                        document.getElementById('qrImage').style.opacity = "0.2";
+                        document.getElementById('pinDisplay').innerText = "------";
+                    }
+                }, 1000);
+
+                // Start Live Polling for Students every 3 seconds
+                livePollingInterval = setInterval(fetchLiveStudents, 3000);
+            } else {
+                alert("Error: " + data.message);
+            }
+        }
+
+        // --- 4. Live Polling Logic ---
+        async function fetchLiveStudents() {
+            if (!activeSessionId) return;
+
+            try {
+                const response = await fetch(`/api/live-session-attendance/${activeSessionId}`);
+                const data = await response.json();
+
+                if (data.success && data.attendances.length > 0) {
+                    const listObj = document.getElementById('liveStudentList');
+                    document.getElementById('studentCount').innerText = data.attendances.length;
+                    
+                    listObj.innerHTML = ''; // Clear waiting text
+                    
+                    data.attendances.forEach(att => {
+                        const time = new Date(att.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        listObj.innerHTML += `
+                            <li style="padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                                <strong><i class="fas fa-check-circle" style="color: green; margin-right: 5px;"></i> ${att.studentErpId}</strong>
+                                <span style="color: #666; font-size: 12px;">${time}</span>
+                            </li>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error("Polling error", error);
+            }
+        }
+    </script>
+</body>
+</html>    
+        <!-- <h2 style="margin: 20px; color: #333;">Session Management</h2>
 
         <div class="session-container">
             <div class="tabs">
@@ -182,4 +385,4 @@
         }
     </script>
 </body>
-</html>
+</html> -->
