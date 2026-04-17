@@ -146,6 +146,17 @@ app.get('/api/get-attendance/:erpId', async (req, res) => {
     }
 });
 
+// Fetch Real System Activity
+app.get('/api/recent-activity', async (req, res) => {
+    try {
+        // Find the 5 newest attendance records
+        const recentScans = await Attendance.find().sort({ createdAt: -1 }).limit(5);
+        res.json({ success: true, activities: recentScans });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
+});
+
 // Fallback route for frontend UI
 // Fallback route for frontend UI (Updated for Express 5)
 app.get(/.*/, (req, res) => {

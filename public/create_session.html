@@ -22,6 +22,7 @@
     </div>
 
     <div class="main">
+        <i class="fas fa-bars hamburger-btn" onclick="document.querySelector('.sidebar').classList.toggle('active')"></i>
         <div class="header">
             Priyadarshini Bhagwati College of Engineering, Nagpur
         </div>
@@ -142,17 +143,39 @@
             if (data.success) {
                 // Hide the form and show the generated QR Code and Pin!
                 const setupDiv = document.getElementById('session-setup');
-                setupDiv.innerHTML = `
-                    <div style="text-align: center;">
-                        <h3 style="color: green;"><i class="fas fa-broadcast-tower"></i> Session is Live!</h3>
-                        <p>Ask students to scan this QR or enter the pin.</p>
-                        <img src="${data.qrImage}" alt="QR Code" style="width: 250px; border: 2px solid #ccc; border-radius: 10px; margin: 15px 0;">
-                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; display: inline-block;">
-                            <span style="font-size: 14px; color: #1976d2;">Manual Entry Pin:</span><br>
-                            <span style="font-size: 30px; font-weight: bold; letter-spacing: 5px;">${data.sessionCode}</span>
-                        </div>
+                // Replace the old setupDiv.innerHTML with this updated one:
+            setupDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <h3 style="color: green;"><i class="fas fa-broadcast-tower"></i> Session is Live!</h3>
+                    <div style="background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; font-weight: bold; margin: 10px 0;">
+                        <i class="fas fa-stopwatch"></i> Expires in: <span id="timeDisplay" style="font-size: 20px;">10:00</span>
                     </div>
-                `;
+                    <img id="qrImage" src="${data.qrImage}" alt="QR Code" style="width: 250px; border: 2px solid #ccc; border-radius: 10px; margin: 15px 0;">
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; display: inline-block;">
+                        <span style="font-size: 14px; color: #1976d2;">Manual Entry Pin:</span><br>
+                        <span id="pinDisplay" style="font-size: 30px; font-weight: bold; letter-spacing: 5px;">${data.sessionCode}</span>
+                    </div>
+                </div>
+            `;
+
+            // Start the 10-minute countdown
+            let timeLeft = 600; // 10 minutes in seconds
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                document.getElementById('timeDisplay').innerText = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timeDisplay').innerText = "EXPIRED";
+                    document.getElementById('qrImage').style.opacity = "0.2"; // Dim the QR
+                    document.getElementById('pinDisplay').innerText = "------";
+                    alert("Session has expired! Students can no longer mark attendance.");
+                }
+            }, 1000);
             } else {
                 alert("Error: " + data.message);
             }

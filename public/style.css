@@ -500,58 +500,42 @@ th, td {
 /* =========================================
    MOBILE RESPONSIVE LAYOUT
    ========================================= */
+/* Slide-out Hamburger Menu for Mobile */
+.hamburger-btn {
+    display: none;
+    font-size: 24px;
+    cursor: pointer;
+    margin: 15px;
+    color: #333;
+}
+
 @media screen and (max-width: 768px) {
+    .hamburger-btn {
+        display: block; /* Show button only on mobile */
+    }
     
-    /* 1. Turn vertical sidebar into a swipeable horizontal menu */
     .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative; /* Un-fixes it from the left side */
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto; /* Allows swiping left/right to see menu items */
-        white-space: nowrap;
-        padding: 5px;
+        position: fixed;
+        left: -100%; /* Hide off-screen by default */
+        top: 0;
+        width: 250px;
+        height: 100vh;
         z-index: 1000;
+        transition: 0.3s ease-in-out;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.2);
     }
 
-    .sidebar h2 {
-        display: none; /* Hides the big title to save space on mobile */
+    .sidebar.active {
+        left: 0; /* Slide in when active class is added */
     }
 
-    .sidebar a {
-        padding: 10px 15px;
-        font-size: 14px;
-        border-radius: 5px;
-    }
-
-    /* 2. Expand Main Content to full width */
     .main {
-        margin-left: 0; /* Removes the gap left by the old sidebar */
+        margin-left: 0;
         width: 100%;
-        padding: 10px;
     }
 
-    /* 3. Fix the College Header Text */
-    .header {
-        font-size: 16px;
-        padding: 15px 10px;
-        text-align: center;
-        line-height: 1.4;
-    }
-
-    /* 4. Stack Dashboard Cards vertically instead of side-by-side */
     .dashboard-grid {
         display: flex;
         flex-direction: column;
-        gap: 15px;
-    }
-
-    /* 5. Allow tables to scroll horizontally so they don't break the screen */
-    table, .exam-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-        width: 100%;
     }
 }

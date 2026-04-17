@@ -22,6 +22,7 @@
     </div>
 
     <div class="main">
+        <i class="fas fa-bars hamburger-btn" onclick="document.querySelector('.sidebar').classList.toggle('active')"></i>
         <div class="header">
             Priyadarshini Bhagwati College of Engineering, Nagpur
         </div>
@@ -61,60 +62,69 @@
         </div>
 
         <div class="dashboard-grid" style="margin-top: 20px;">
+    <div class="stat-card" style="flex-direction: column; align-items: flex-start; grid-column: span 2;">
+        <h3 style="margin-top: 0;"><i class="fas fa-history"></i> Live Activity Log</h3>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Real-time feed of campus attendance.</p>
+        <table class="exam-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Event Type</th>
+                    <th>Details</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="liveActivityTable">
+                <tr><td colspan="3">Loading live data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="stat-card" style="flex-direction: column; align-items: flex-start;">
+        <h3 style="margin-top: 0; color: #e65100;"><i class="fas fa-bullhorn"></i> Campus Notices</h3>
+        <ul style="list-style-type: none; padding: 0; margin-top: 10px; font-size: 14px; color: #444;">
+            <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                <strong>Exam Cell:</strong> Final submissions for 3rd-year minor projects are due next Friday.
+            </li>
+            <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                <strong>Admin:</strong> Campus Wi-Fi maintenance scheduled for 10:00 PM tonight.
+            </li>
+            <li style="padding: 10px 0;">
+                <strong>HOD Desk:</strong> Ensure 75% attendance is met before the upcoming sessional exams.
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Fetch live data when dashboard loads
+    async function loadLiveActivity() {
+        try {
+            const res = await fetch('/api/recent-activity');
+            const data = await res.json();
             
-            <div class="stat-card" style="grid-column: span 2; flex-direction: column; align-items: flex-start;">
-                <h3 style="margin-top: 0; color: #333;"><i class="fas fa-history" style="color: #1976d2;"></i> System Activity Log</h3>
-                <p style="font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 15px;">Real-time overview of campus events.</p>
+            if (data.success) {
+                const tbody = document.getElementById('liveActivityTable');
+                tbody.innerHTML = ''; // Clear loading text
                 
-                <table class="exam-table" style="width: 100%;">
-                    <tr>
-                        <th>Event Type</th>
-                        <th>Details</th>
-                        <th>Time</th>
-                    </tr>
-                    <tr>
-                        <td><span class="badge checked">Lecture Started</span></td>
-                        <td><strong>DBMS</strong> - 5th Sem (CSE)</td>
-                        <td>Just now</td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge checked">Attendance Marked</span></td>
-                        <td>Hriday Kolhe (ERP-2024-892)</td>
-                        <td>10:05 AM</td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge pending">Material Uploaded</span></td>
-                        <td>Prof. Hatwar - CN Notes (Unit 1)</td>
-                        <td>09:30 AM</td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge pending">Leave Request</span></td>
-                        <td>Sick Leave - 3rd Year IT</td>
-                        <td>Yesterday</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="stat-card" style="flex-direction: column; align-items: flex-start;">
-                <h3 style="margin-top: 0; color: #333;"><i class="fas fa-bolt" style="color: #f57c00;"></i> Quick Actions</h3>
-                <p style="font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 15px;">Jump straight to common tasks.</p>
-                
-                <div style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
-                    <a href="create_session.html" class="btn-primary" style="text-align: center; text-decoration: none; display: block; box-sizing: border-box;">
-                        <i class="fas fa-play-circle"></i> Start New Lecture
-                    </a>
-                    
-                    <a href="add_student.html" class="btn-primary" style="text-align: center; text-decoration: none; display: block; background: #8e24aa; box-sizing: border-box;">
-                        <i class="fas fa-user-plus"></i> Register Student
-                    </a>
-
-                    <a href="subject_details.html" class="btn-secondary" style="text-align: center; text-decoration: none; display: block; box-sizing: border-box;">
-                        <i class="fas fa-upload"></i> Upload Materials
-                    </a>
-                </div>
-            </div>
-
-        </div>
+                data.activities.forEach(log => {
+                    const timeString = new Date(log.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><span class="badge checked" style="background: #e8f5e9; color: #2e7d32; padding: 5px 10px; border-radius: 15px; font-size: 12px;">Attendance Marked</span></td>
+                            <td><strong>${log.studentErpId}</strong> - ${log.subject}</td>
+                            <td>${timeString}</td>
+                        </tr>
+                    `;
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching logs");
+        }
+    }
+    
+    // Run the function when the page opens
+    window.onload = loadLiveActivity;
+</script>
 
     </div>
 
