@@ -27,7 +27,12 @@
             Priyadarshini Bhagwati College of Engineering, Nagpur
         </div>
         
-        <h2 style="margin: 20px; color: #333;">Student Registry Management</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2 style="margin: 0; color: #333;">Student Registry Management</h2>
+    <div style="background: #e3f2fd; color: #1976d2; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <i class="fas fa-users"></i> Total Registered: <span id="totalStudentsDisplay">0</span>
+    </div>
+</div>
 
         <div class="session-container" style="max-width: 800px;">
             <div id="auth-section" class="tab-content active" style="display: block;">
@@ -76,8 +81,11 @@
                                 <label>Batch Year</label>
                                 <select required>
                                     <option value="">Select Batch</option>
-                                    <option value="2024">2024 - 2028</option>
+                                    <option value="2025">2022 - 2026</option>
+                                    <option value="2025">2023 - 2027</option>
+                                    <option value="2025">2024 - 2028</option>
                                     <option value="2025">2025 - 2029</option>
+                                    <option value="2025">2026 - 2030</option>
                                 </select>
                             </div>
                             <div class="input-group">
@@ -94,14 +102,19 @@
                 </div>
 
                 <div id="batch-reg" class="tab-content" style="display: none;">
-                    <h3>Upload Batch (CSV/Excel)</h3>
+                    <h3>Upload Batch (CSV)</h3>
                     <p>Upload a .csv file containing the new batch list. Ensure columns match: <i>Name, ERP, Branch, Email, Phone</i>.</p>
-                    <div class="upload-box">
-                        <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #1976d2; margin-bottom: 10px;"></i>
-                        <p>Drag & Drop file here or</p>
-                        <input type="file" accept=".csv, .xlsx" style="margin-top: 10px;">
-                    </div>
-                    <button class="btn-secondary" style="margin-top: 20px;">Upload & Parse</button>
+                    
+                    <form onsubmit="handleBulkUpload(event)">
+                        <div class="upload-box">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #1976d2; margin-bottom: 10px;"></i>
+                            <p>Drag & Drop file here or</p>
+                            
+                            <input type="file" id="bulkFile" accept=".csv" style="margin-top: 10px;" required>
+                        </div>
+                        
+                        <button type="submit" class="btn-secondary" style="margin-top: 20px;">Upload & Parse</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -163,6 +176,87 @@
             } else {
                 alert("Error: " + data.message);
             }
+        }
+
+        // 1. Fetch the live count when the page loads
+        async function fetchStudentCount() {
+            try {
+                const res = await fetch('/api/student-count');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('totalStudentsDisplay').innerText = data.count;
+                }
+            } catch (error) {
+                console.error("Could not load student count");
+            }
+        }
+
+        // Call it immediately 
+        window.onload = fetchStudentCount;
+
+        // 2. Handle the CSV File Upload
+        async function handleBulkUpload(event) {
+            event.preventDefault();
+            
+            const fileInput = document.getElementById('bulkFile');
+            const file = fileInput.files[0];
+            
+            if (!file) return alert("Please choose a file to upload.");
+            if (!file.name.endsWith('.csv')) return alert("❌ Invalid format. Please save your Excel file as a .CSV and try again.");
+
+            // Use the browser's built-in FileReader to read the CSV text
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n');
+                const studentsToUpload = [];
+
+                // Loop through rows (Start at index 1 to skip the header text!)
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i].trim();
+                    if (!row) continue; // Skip empty rows at the bottom of the file
+                    
+                    const cols = row.split(','); // Split by comma
+                    
+                    // Make sure the row has all 5 columns (Name, ERP, Branch, Email, Phone)
+                    if (cols.length >= 5) {
+                        studentsToUpload.push({
+                            fullName: cols[0].trim(),
+                            erpId: cols[1].trim(),
+                            branch: cols[2].trim(),
+                            email: cols[3].trim(),
+                            contact: cols[4].trim()
+                        });
+                    }
+                }
+
+                if (studentsToUpload.length === 0) return alert("No valid student data found in the CSV.");
+
+                // Send the beautifully formatted array to our backend
+                try {
+                    const response = await fetch('/api/bulk-add-students', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ students: studentsToUpload })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert("✅ " + data.message);
+                        fetchStudentCount(); // Update the counter badge instantly!
+                        fileInput.value = ""; // Clear the file input
+                    } else {
+                        alert("❌ " + data.message);
+                    }
+                } catch(error) {
+                    alert("Error communicating with server.");
+                }
+            };
+            
+            // Start reading the file
+            reader.readAsText(file);
         }
 
         // Tab Switching logic (keep this the same as before)

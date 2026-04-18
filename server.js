@@ -179,6 +179,40 @@ app.get('/api/recent-activity', async (req, res) => {
     }
 });
 
+// 6. Get Total Student Count
+app.get('/api/student-count', async (req, res) => {
+    try {
+        const count = await Student.countDocuments();
+        res.json({ success: true, count });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
+});
+
+// 7. Bulk Add Students via CSV
+app.post('/api/bulk-add-students', async (req, res) => {
+    try {
+        const students = req.body.students;
+        
+        if (!students || students.length === 0) {
+            return res.status(400).json({ success: false, message: "No data received." });
+        }
+
+        // insertMany automatically adds the whole array to the database
+        // { ordered: false } tells MongoDB to keep going even if it finds a duplicate ERP ID
+        await Student.insertMany(students, { ordered: false }); 
+        
+        res.json({ success: true, message: `Successfully processed ${students.length} students!` });
+    } catch (error) {
+        // Code 11000 is MongoDB's error for duplicate unique keys (like ERP IDs)
+        if (error.code === 11000) {
+            res.status(200).json({ success: true, message: "Upload complete, but some duplicate ERP IDs were skipped." });
+        } else {
+            res.status(500).json({ success: false, message: "Server error during bulk upload." });
+        }
+    }
+});
+
 // Fallback route for frontend UI
 // Fallback route for frontend UI (Updated for Express 5)
 app.get(/.*/, (req, res) => {
