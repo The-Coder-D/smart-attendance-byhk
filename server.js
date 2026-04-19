@@ -6,6 +6,19 @@ const qrcode = require('qrcode');
 const Attendance = require('./models/attendence');
 const app = express();
 
+// --- HAVERSINE FORMULA ---
+// Calculates the distance between two GPS coordinates in meters
+function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radius of the earth in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; // Distance in meters
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -102,8 +115,28 @@ app.get('/api/live-session-attendance/:sessionId', async (req, res) => {
 // 4. Mark Attendance (Via QR Scan or Manual Pin)
 app.post('/api/mark-attendance', async (req, res) => {
     try {
-        const { erpId, sessionIdentifier } = req.body; // identifier is either the 6-digit pin OR the QR code text
+        // We now expect the frontend to send the student's latitude and longitude
+        const { erpId, sessionIdentifier, studentLat, studentLng } = req.body; 
 
+        // --- GEOFENCE SECURITY CHECK ---
+        // TODO: Replace these with the exact coordinates of your classroom/house for testing
+        const CLASSROOM_LAT = 21.1118; // Example: Priyadarshini Bhagwati College area
+        const CLASSROOM_LNG = 79.1171; 
+        const ALLOWED_RADIUS_METERS = 50; // Student must be within 50 meters
+
+        if (!studentLat || !studentLng) {
+            return res.status(400).json({ success: false, message: "Location access is required to mark attendance." });
+        }
+
+        const distance = getDistanceFromLatLonInMeters(CLASSROOM_LAT, CLASSROOM_LNG, studentLat, studentLng);
+        
+        if (distance > ALLOWED_RADIUS_METERS) {
+            return res.status(403).json({ 
+                success: false, 
+                message: `Geofence Blocked: You are ${Math.round(distance)} meters away from the classroom.` 
+            });
+        }
+        // --- END GEOFENCE CHECK ---
         // 1. Verify Student Exists
         const student = await Student.findOne({ erpId });
         if (!student) return res.status(404).json({ success: false, message: "Student ERP ID not found." });
@@ -221,6 +254,35 @@ app.get('/api/students', async (req, res) => {
         res.json({ success: true, students });
     } catch (error) {
         res.status(500).json({ success: false, message: "Could not fetch students." });
+    }
+});
+
+// 9. Student Report Login & Data Fetch
+app.post('/api/student-report', async (req, res) => {
+    try {
+        const { erpId, password } = req.body;
+        
+        // 1. Find the student by their ERP ID (Roll No)
+        const student = await Student.findOne({ erpId });
+        
+        if (!student) {
+            return res.status(404).json({ success: false, message: "Student ERP ID not found in registry." });
+        }
+
+        // 2. Password Check (Using their contact number from the CSV as the default password)
+        // We will also accept "1234" as a master override for your testing purposes!
+        if (password !== student.contact && password !== "1234") {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Incorrect password. (Hint: Use your registered phone number)" 
+            });
+        }
+
+        // 3. If everything matches, send the student's data back!
+        res.json({ success: true, student });
+        
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error during login." });
     }
 });
 

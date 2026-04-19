@@ -50,18 +50,18 @@
 
         <div id="report-dashboard" style="display: none; padding: 20px;">
             
-            <div class="stat-card profile-card" style="display: flex; gap: 30px; align-items: center; margin-bottom: 20px;">
-                <div class="profile-pic" style="width: 100px; height: 100px; font-size: 50px;"><i class="fas fa-user"></i></div>
-                <div style="flex: 1;">
-                    <h2 style="margin: 0 0 10px 0; color: #1976d2;">Hriday Kolhe</h2>
-                    <div class="form-grid" style="gap: 10px;">
-                        <p style="margin: 0; color: #555;"><strong>ERP ID:</strong> ERP-2024-892</p>
-                        <p style="margin: 0; color: #555;"><strong>Branch:</strong> Computer Science (CSE)</p>
-                        <p style="margin: 0; color: #555;"><strong>Batch:</strong> 2024-2028</p>
-                        <p style="margin: 0; color: #555;"><strong>Semester:</strong> 5th (3rd Year)</p>
-                        <p style="margin: 0; color: #555;"><strong>Email:</strong> hriday.k@example.com</p>
-                        <p style="margin: 0; color: #555;"><strong>Contact:</strong> +91 9876543210</p>
-                    </div>
+            <div class="profile-header" style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px;">
+                <div style="width: 80px; height: 80px; background: #e3f2fd; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: #1976d2;">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div style="flex-grow: 1;">
+                    <h2 id="reportName" style="margin: 0; color: #1976d2;">Student Name</h2>
+                    <p style="margin: 5px 0 0 0; color: #555;"><strong>ERP ID:</strong> <span id="reportErp">---</span></p>
+                    <p style="margin: 5px 0 0 0; color: #555;"><strong>Email:</strong> <span id="reportEmail">---</span></p>
+                </div>
+                <div style="text-align: right; color: #555;">
+                    <p style="margin: 0 0 5px 0;"><strong>Branch:</strong> <span id="reportBranch">---</span></p>
+                    <p style="margin: 0 0 5px 0;"><strong>Contact:</strong> +91 <span id="reportContact">---</span></p>
                 </div>
             </div>
 
@@ -139,6 +139,45 @@
                 },
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 50, max: 100 } } }
             });
+        }
+
+        // Make sure your login form has: onsubmit="handleReportLogin(event)"
+// Make sure your ERP input has: id="loginErp"
+// Make sure your Password input has: id="loginPassword"
+
+        async function handleReportLogin(event) {
+            event.preventDefault();
+            
+            const erpId = document.getElementById('loginErp').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/student-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ erpId, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 1. Hide the login box and show the report dashboard
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('report-section').style.display = 'block';
+
+                    // 2. Inject the real database info into the HTML
+                    document.getElementById('reportName').innerText = data.student.fullName;
+                    document.getElementById('reportErp').innerText = data.student.erpId;
+                    document.getElementById('reportEmail').innerText = data.student.email;
+                    document.getElementById('reportBranch').innerText = data.student.branch;
+                    document.getElementById('reportContact').innerText = data.student.contact;
+                    
+                } else {
+                    alert("❌ " + data.message);
+                }
+            } catch (error) {
+                alert("Error connecting to server.");
+            }
         }
     </script>
 </body>

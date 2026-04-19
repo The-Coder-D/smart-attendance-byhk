@@ -70,78 +70,102 @@
     </div>
 
     <script>
-        // --- 1. QR Scanner Logic ---
+        // --- 1. Helper Function: Get GPS Coordinates ---
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject("Geolocation is not supported by your browser");
+                } else {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+                        (error) => reject("Please enable GPS/Location Services to mark attendance.")
+                    );
+                }
+            });
+        }
+
+        // --- 2. QR Scanner Logic ---
         function requestCamera() {
             const erpId = document.getElementById('scannerErp').value;
-            
             if (!erpId) {
                 alert("Please enter your ERP ID at the top before starting the camera!");
                 return;
             }
 
-            // Hide placeholder, show the reader div
             document.getElementById('camera-placeholder').style.display = 'none';
             document.getElementById('reader').style.display = 'block';
 
-            // Initialize the scanner
-            const html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false
-            );
-
-            // Start scanning
+            const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 
             async function onScanSuccess(decodedText) {
-                // Stop the camera once we get a successful read
                 html5QrcodeScanner.clear();
-                document.getElementById('reader').innerHTML = `<h3 style="color: green; text-align: center;">QR Scanned! Processing...</h3>`;
+                document.getElementById('reader').innerHTML = `<h3 style="color: #1976d2; text-align: center;"><i class="fas fa-satellite-dish fa-spin"></i> Verifying Location...</h3>`;
 
-                // Send the decoded text (the Session ID) to our backend
                 try {
+                    // Get GPS before pinging the database
+                    const coords = await getUserLocation();
+
                     const response = await fetch('/api/mark-attendance', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ erpId: erpId, sessionIdentifier: decodedText })
+                        body: JSON.stringify({ 
+                            erpId: erpId, 
+                            sessionIdentifier: decodedText,
+                            studentLat: coords.lat,  // Send Latitude
+                            studentLng: coords.lng   // Send Longitude
+                        })
                     });
 
                     const data = await response.json();
 
                     if (data.success) {
                         alert("✅ " + data.message);
-                        window.location.href = "attendance.html"; // Redirect to dashboard on success
+                        window.location.href = "attendance.html";
                     } else {
                         alert("❌ " + data.message);
-                        location.reload(); // Reload to try again
+                        location.reload(); 
                     }
                 } catch (error) {
-                    alert("System error. Please try manual entry.");
+                    alert("❌ " + error);
+                    location.reload();
                 }
             }
 
-            function onScanFailure(error) {
-                // This fires constantly while it's looking for a code. We just ignore it until it finds one.
-            }
+            function onScanFailure(error) { /* Ignore background errors */ }
         }
 
-        // --- 2. Manual Entry Logic (From earlier) ---
+        // --- 3. Manual Entry Logic ---
         async function submitManualAttendance(event) {
             event.preventDefault();
             const erpId = document.getElementById('studentErp').value;
             const sessionIdentifier = document.getElementById('manualPin').value;
 
-            const response = await fetch('/api/mark-attendance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ erpId, sessionIdentifier })
-            });
+            try {
+                // Get GPS before pinging the database
+                const coords = await getUserLocation();
 
-            const data = await response.json();
+                const response = await fetch('/api/mark-attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        erpId, 
+                        sessionIdentifier,
+                        studentLat: coords.lat, 
+                        studentLng: coords.lng 
+                    })
+                });
 
-            if (data.success) {
-                alert("✅ " + data.message);
-                event.target.reset(); 
-            } else {
-                alert("❌ " + data.message);
+                const data = await response.json();
+
+                if (data.success) {
+                    alert("✅ " + data.message);
+                    event.target.reset(); 
+                } else {
+                    alert("❌ " + data.message);
+                }
+            } catch (error) {
+                alert("❌ " + error);
             }
         }
     </script>
