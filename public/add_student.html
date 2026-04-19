@@ -116,6 +116,27 @@
                         <button type="submit" class="btn-secondary" style="margin-top: 20px;">Upload & Parse</button>
                     </form>
                 </div>
+
+                <div id="student-registry-list" style="margin-top: 40px;">
+                <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
+                <h3 style="color: #333; margin-bottom: 15px;"><i class="fas fa-list-ol"></i> Official Student Registry</h3>
+                
+                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; border-radius: 5px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                    <table class="exam-table" style="width: 100%; margin: 0;">
+                        <thead style="position: sticky; top: 0; background: #1976d2; color: white; z-index: 1;">
+                            <tr>
+                                <th style="padding: 12px; text-align: left;">Roll No (ERP)</th>
+                                <th style="padding: 12px; text-align: left;">Full Name</th>
+                                <th style="padding: 12px; text-align: left;">Branch</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentListTable">
+                            <tr><td colspan="3" style="text-align: center; padding: 20px;">Loading registry...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>    
+
             </div>
         </div>
     </div>
@@ -178,23 +199,49 @@
             }
         }
 
-        // 1. Fetch the live count when the page loads
-        async function fetchStudentCount() {
+        // 1. Fetch live count AND populate the student list
+        async function fetchStudentData() {
             try {
-                const res = await fetch('/api/student-count');
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('totalStudentsDisplay').innerText = data.count;
+                // Get the Count
+                const countRes = await fetch('/api/student-count');
+                const countData = await countRes.json();
+                if (countData.success) {
+                    document.getElementById('totalStudentsDisplay').innerText = countData.count;
+                }
+
+                // Get the List
+                const listRes = await fetch('/api/students');
+                const listData = await listRes.json();
+                
+                if (listData.success) {
+                    const tbody = document.getElementById('studentListTable');
+                    tbody.innerHTML = ''; // Clear loading text
+                    
+                    if (listData.students.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #666; padding: 20px;">No students registered yet.</td></tr>';
+                        return;
+                    }
+
+                    // Populate the table
+                    listData.students.forEach(student => {
+                        tbody.innerHTML += `
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 10px; font-weight: bold; color: #1976d2;">${student.erpId}</td>
+                                <td style="padding: 10px;">${student.fullName}</td>
+                                <td style="padding: 10px;"><span class="badge checked" style="background: #e3f2fd; color: #1976d2;">${student.branch}</span></td>
+                            </tr>
+                        `;
+                    });
                 }
             } catch (error) {
-                console.error("Could not load student count");
+                console.error("Could not load student data");
             }
         }
 
-        // Call it immediately 
-        window.onload = fetchStudentCount;
+        // Call it immediately on page load
+        window.onload = fetchStudentData;
 
-        // 2. Handle the CSV File Upload
+        // 2. Handle the CSV File Upload (Updated for your specific CSV layout)
         async function handleBulkUpload(event) {
             event.preventDefault();
             
@@ -204,7 +251,6 @@
             if (!file) return alert("Please choose a file to upload.");
             if (!file.name.endsWith('.csv')) return alert("❌ Invalid format. Please save your Excel file as a .CSV and try again.");
 
-            // Use the browser's built-in FileReader to read the CSV text
             const reader = new FileReader();
             
             reader.onload = async function(e) {
@@ -212,28 +258,26 @@
                 const rows = text.split('\n');
                 const studentsToUpload = [];
 
-                // Loop through rows (Start at index 1 to skip the header text!)
                 for (let i = 1; i < rows.length; i++) {
                     const row = rows[i].trim();
-                    if (!row) continue; // Skip empty rows at the bottom of the file
+                    if (!row) continue;
                     
-                    const cols = row.split(','); // Split by comma
+                    const cols = row.split(','); 
                     
-                    // Make sure the row has all 5 columns (Name, ERP, Branch, Email, Phone)
-                    if (cols.length >= 5) {
+                    // FIXED: Your CSV has 6 columns (Name, Roll, Branch, Batch, Email, Contact)
+                    if (cols.length >= 6) {
                         studentsToUpload.push({
                             fullName: cols[0].trim(),
-                            erpId: cols[1].trim(),
-                            branch: cols[2].trim(),
-                            email: cols[3].trim(),
-                            contact: cols[4].trim()
+                            erpId: cols[1].trim(),   // Roll No
+                            branch: cols[2].trim(),  // Branch
+                            email: cols[4].trim(),   // Email (Skipping Batch at index 3)
+                            contact: cols[5].trim()  // Contact
                         });
                     }
                 }
 
                 if (studentsToUpload.length === 0) return alert("No valid student data found in the CSV.");
 
-                // Send the beautifully formatted array to our backend
                 try {
                     const response = await fetch('/api/bulk-add-students', {
                         method: 'POST',
@@ -245,8 +289,8 @@
                     
                     if (data.success) {
                         alert("✅ " + data.message);
-                        fetchStudentCount(); // Update the counter badge instantly!
-                        fileInput.value = ""; // Clear the file input
+                        fetchStudentData(); // Instantly update the counter AND the table below!
+                        fileInput.value = ""; 
                     } else {
                         alert("❌ " + data.message);
                     }
@@ -255,9 +299,9 @@
                 }
             };
             
-            // Start reading the file
             reader.readAsText(file);
         }
+        
 
         // Tab Switching logic (keep this the same as before)
         function switchRegTab(tab) {

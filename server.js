@@ -213,6 +213,17 @@ app.post('/api/bulk-add-students', async (req, res) => {
     }
 });
 
+// 8. Fetch all students for the registry list
+app.get('/api/students', async (req, res) => {
+    try {
+        // Fetch all students and sort them alphabetically by Name
+        const students = await Student.find().sort({ fullName: 1 });
+        res.json({ success: true, students });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Could not fetch students." });
+    }
+});
+
 // Fallback route for frontend UI
 // Fallback route for frontend UI (Updated for Express 5)
 app.get(/.*/, (req, res) => {
