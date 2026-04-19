@@ -120,8 +120,8 @@ app.post('/api/mark-attendance', async (req, res) => {
 
         // --- GEOFENCE SECURITY CHECK ---
         // TODO: Replace these with the exact coordinates of your classroom/house for testing
-        const CLASSROOM_LAT = 21.1118; // Example: Priyadarshini Bhagwati College area
-        const CLASSROOM_LNG = 79.1171; 
+        const CLASSROOM_LAT = 21.133738096297215; // Example: Priyadarshini Bhagwati College area
+        const CLASSROOM_LNG = 79.13276319748876; 
         const ALLOWED_RADIUS_METERS = 50; // Student must be within 50 meters
 
         if (!studentLat || !studentLng) {
