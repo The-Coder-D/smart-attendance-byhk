@@ -120,8 +120,8 @@ app.post('/api/mark-attendance', async (req, res) => {
 
         // --- GEOFENCE SECURITY CHECK ---
         // TODO: Replace these with the exact coordinates of your classroom/house for testing
-        const CLASSROOM_LAT = 21.133738096297215; // Example: Priyadarshini Bhagwati College area
-        const CLASSROOM_LNG = 79.13276319748876; 
+        const CLASSROOM_LAT = 21.12036768174076; // Example: Priyadarshini Bhagwati College area
+        const CLASSROOM_LNG = 79.12576662670332; 
         const ALLOWED_RADIUS_METERS = 50; // Student must be within 50 meters
 
         if (!studentLat || !studentLng) {
@@ -271,7 +271,9 @@ app.post('/api/student-report', async (req, res) => {
 
         // 2. Password Check (Using their contact number from the CSV as the default password)
         // We will also accept "1234" as a master override for your testing purposes!
-        if (password !== student.contact && password !== "1234") {
+        if (password !== student.contact && 
+            password !== student.phone && 
+            password !== student.password) {
             return res.status(401).json({ 
                 success: false, 
                 message: "Incorrect password. (Hint: Use your registered phone number)" 

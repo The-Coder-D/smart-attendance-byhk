@@ -106,44 +106,6 @@
     </div>
 
     <script>
-        function handleStudentLogin(event) {
-            event.preventDefault();
-            document.getElementById('erp-login-section').style.display = 'none';
-            document.getElementById('report-dashboard').style.display = 'block';
-            renderChart();
-        }
-
-        function switchExamView() {
-            const selected = document.getElementById('examSelector').value;
-            document.getElementById('table-midterm1').style.display = 'none';
-            document.getElementById('table-midterm2').style.display = 'none';
-            document.getElementById('table-endsem').style.display = 'none';
-            document.getElementById('table-' + selected).style.display = 'table';
-        }
-
-        function renderChart() {
-            const ctx = document.getElementById('attendanceChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-                    datasets: [{
-                        label: 'Attendance %',
-                        data: [78, 85, 82, 90, 88],
-                        borderColor: '#1976d2',
-                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 50, max: 100 } } }
-            });
-        }
-
-        // Make sure your login form has: onsubmit="handleReportLogin(event)"
-// Make sure your ERP input has: id="loginErp"
-// Make sure your Password input has: id="loginPassword"
         async function handleReportLogin(event) {
             event.preventDefault();
             
@@ -164,12 +126,12 @@
                     document.getElementById('login-section').style.display = 'none';
                     document.getElementById('report-section').style.display = 'block';
 
-                    // 2. Inject the real database info into the HTML
+                    // 2. Inject the real database info into the HTML (with the phone/contact fix)
                     document.getElementById('reportName').innerText = data.student.fullName;
                     document.getElementById('reportErp').innerText = data.student.erpId;
                     document.getElementById('reportEmail').innerText = data.student.email;
                     document.getElementById('reportBranch').innerText = data.student.branch;
-                    document.getElementById('reportContact').innerText = data.student.contact;
+                    document.getElementById('reportContact').innerText = data.student.contact || data.student.phone || "N/A";
 
                     // 3. Populate the Attendance History Table
                     const tbody = document.getElementById('reportAttendanceTable');
@@ -179,14 +141,13 @@
                         data.attendanceRecords.forEach(record => {
                             const dateObj = new Date(record.createdAt);
                             const dateString = dateObj.toLocaleDateString();
-                            const timeString = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                             
                             tbody.innerHTML += `
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 12px 10px; color: #555;">${dateString} at ${timeString}</td>
-                                    <td style="padding: 12px 10px;"><strong>${record.subject}</strong></td>
-                                    <td style="padding: 12px 10px; text-align: center;">
-                                        <span class="badge checked" style="background: #e8f5e9; color: #2e7d32; padding: 5px 15px; border-radius: 20px; font-size: 12px;">Present</span>
+                                    <td style="padding: 10px; color: #555; font-size: 14px;">${dateString}</td>
+                                    <td style="padding: 10px; font-size: 14px;"><strong>${record.subject}</strong></td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <span class="badge checked" style="background: #e8f5e9; color: #2e7d32; padding: 5px 10px; border-radius: 20px; font-size: 11px;">Present</span>
                                     </td>
                                 </tr>
                             `;
@@ -194,12 +155,14 @@
                     } else {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="3" style="text-align: center; padding: 30px; color: #888;">
-                                    <i class="fas fa-folder-open" style="font-size: 24px; margin-bottom: 10px; color: #ccc;"></i><br>
+                                <td colspan="3" style="text-align: center; padding: 20px; color: #888;">
                                     No attendance records found yet.
                                 </td>
                             </tr>`;
                     }
+
+                    // 4. Render the Chart
+                    renderChart();
                     
                 } else {
                     alert("❌ " + data.message);
@@ -208,6 +171,132 @@
                 alert("Error connecting to server.");
             }
         }
+
+        function renderChart() {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    datasets: [{
+                        label: 'Attendance %',
+                        data: [78, 85, 82, 90, 88], 
+                        borderColor: '#1976d2',
+                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { y: { min: 50, max: 100 } } 
+                }
+            });
+        }
+//         function handleStudentLogin(event) {
+//             event.preventDefault();
+//             document.getElementById('erp-login-section').style.display = 'none';
+//             document.getElementById('report-dashboard').style.display = 'block';
+//             renderChart();
+//         }
+
+//         function switchExamView() {
+//             const selected = document.getElementById('examSelector').value;
+//             document.getElementById('table-midterm1').style.display = 'none';
+//             document.getElementById('table-midterm2').style.display = 'none';
+//             document.getElementById('table-endsem').style.display = 'none';
+//             document.getElementById('table-' + selected).style.display = 'table';
+//         }
+
+//         function renderChart() {
+//             const ctx = document.getElementById('attendanceChart').getContext('2d');
+//             new Chart(ctx, {
+//                 type: 'line',
+//                 data: {
+//                     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+//                     datasets: [{
+//                         label: 'Attendance %',
+//                         data: [78, 85, 82, 90, 88],
+//                         borderColor: '#1976d2',
+//                         backgroundColor: 'rgba(25, 118, 210, 0.1)',
+//                         borderWidth: 3,
+//                         fill: true,
+//                         tension: 0.4
+//                     }]
+//                 },
+//                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 50, max: 100 } } }
+//             });
+//         }
+
+//         // Make sure your login form has: onsubmit="handleReportLogin(event)"
+// // Make sure your ERP input has: id="loginErp"
+// // Make sure your Password input has: id="loginPassword"
+//         async function handleReportLogin(event) {
+//             event.preventDefault();
+            
+//             const erpId = document.getElementById('loginErp').value;
+//             const password = document.getElementById('loginPassword').value;
+
+//             try {
+//                 const response = await fetch('/api/student-report', {
+//                     method: 'POST',
+//                     headers: { 'Content-Type': 'application/json' },
+//                     body: JSON.stringify({ erpId, password })
+//                 });
+
+//                 const data = await response.json();
+
+//                 if (data.success) {
+//                     // 1. Hide the login box and show the report dashboard
+//                     document.getElementById('login-section').style.display = 'none';
+//                     document.getElementById('report-section').style.display = 'block';
+
+//                     // 2. Inject the real database info into the HTML
+//                     document.getElementById('reportName').innerText = data.student.fullName;
+//                     document.getElementById('reportErp').innerText = data.student.erpId;
+//                     document.getElementById('reportEmail').innerText = data.student.email;
+//                     document.getElementById('reportBranch').innerText = data.student.branch;
+//                     document.getElementById('reportContact').innerText = data.student.contact;
+
+//                     // 3. Populate the Attendance History Table
+//                     const tbody = document.getElementById('reportAttendanceTable');
+//                     tbody.innerHTML = ''; 
+
+//                     if (data.attendanceRecords && data.attendanceRecords.length > 0) {
+//                         data.attendanceRecords.forEach(record => {
+//                             const dateObj = new Date(record.createdAt);
+//                             const dateString = dateObj.toLocaleDateString();
+//                             const timeString = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            
+//                             tbody.innerHTML += `
+//                                 <tr style="border-bottom: 1px solid #eee;">
+//                                     <td style="padding: 12px 10px; color: #555;">${dateString} at ${timeString}</td>
+//                                     <td style="padding: 12px 10px;"><strong>${record.subject}</strong></td>
+//                                     <td style="padding: 12px 10px; text-align: center;">
+//                                         <span class="badge checked" style="background: #e8f5e9; color: #2e7d32; padding: 5px 15px; border-radius: 20px; font-size: 12px;">Present</span>
+//                                     </td>
+//                                 </tr>
+//                             `;
+//                         });
+//                     } else {
+//                         tbody.innerHTML = `
+//                             <tr>
+//                                 <td colspan="3" style="text-align: center; padding: 30px; color: #888;">
+//                                     <i class="fas fa-folder-open" style="font-size: 24px; margin-bottom: 10px; color: #ccc;"></i><br>
+//                                     No attendance records found yet.
+//                                 </td>
+//                             </tr>`;
+//                     }
+                    
+//                 } else {
+//                     alert("❌ " + data.message);
+//                 }
+//             } catch (error) {
+//                 alert("Error connecting to server.");
+//             }
+//         }
 
     </script>
 </body>
