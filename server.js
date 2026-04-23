@@ -89,7 +89,8 @@ app.post('/api/create-session', async (req, res) => {
         await newSession.save();
 
         // Convert the secure MongoDB Session ID into a visual QR Code Image!
-        const qrDataUrl = await qrcode.toDataURL(newSession._id.toString());
+        const qrDataUrl = await qrcode.toDataURL(newSession._id.toString(),scanUrl);
+        const scanUrl = `https://smart-attendance-byhk.onrender.com/scan.html`;
 
         res.json({ 
             success: true, 
